@@ -916,7 +916,27 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
             cropVC.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
         }
         
-        [[self getRootVC] presentViewController:cropVC animated:FALSE completion:nil];
+        NSString *cropperTipText = [self.options objectForKey:@"cropperTipText"];
+        
+        [[self getRootVC] presentViewController:cropVC animated:FALSE completion:^{
+            if (cropperTipText && cropperTipText.length > 0) {
+                UILabel *tipLabel = [[UILabel alloc] init];
+                tipLabel.text = cropperTipText;
+                tipLabel.textColor = [UIColor whiteColor];
+                tipLabel.font = [UIFont systemFontOfSize:26];
+                tipLabel.textAlignment = NSTextAlignmentCenter;
+                tipLabel.numberOfLines = 0;
+                tipLabel.tag = 99001;
+                tipLabel.translatesAutoresizingMaskIntoConstraints = NO;
+                [cropVC.view addSubview:tipLabel];
+                [NSLayoutConstraint activateConstraints:@[
+                    [tipLabel.centerXAnchor constraintEqualToAnchor:cropVC.view.centerXAnchor],
+                    [tipLabel.bottomAnchor constraintEqualToAnchor:cropVC.view.safeAreaLayoutGuide.bottomAnchor constant:-60],
+                    [tipLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:cropVC.view.leadingAnchor constant:20],
+                    [tipLabel.trailingAnchor constraintLessThanOrEqualToAnchor:cropVC.view.trailingAnchor constant:-20]
+                ]];
+            }
+        }];
     });
 }
 #pragma mark - TOCropViewController Delegate

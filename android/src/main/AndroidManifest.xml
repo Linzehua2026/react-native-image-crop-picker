@@ -26,6 +26,10 @@
             android:name="com.yalantis.ucrop.UCropActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
+        <activity
+            android:name=".CropperTipActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
 
         <!-- Prompt Google Play services to install the backported photo picker module -->
         <service android:name="com.google.android.gms.metadata.ModuleDependencies" android:enabled="false" android:exported="false">
