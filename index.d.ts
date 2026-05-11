@@ -287,7 +287,7 @@ declare module "react-native-image-crop-picker" {
           cropperRotateButtonsHidden?: boolean
 
         /**
-         * Tip text displayed below the crop area. White color, 26sp/pt font size.
+         * Tip text displayed below the crop area (20pt/dp gap). White color, 13sp/pt font size, 19 line height.
          */
         cropperTipText?: string;
 

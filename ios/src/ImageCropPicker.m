@@ -921,17 +921,29 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
         [[self getRootVC] presentViewController:cropVC animated:FALSE completion:^{
             if (cropperTipText && cropperTipText.length > 0) {
                 UILabel *tipLabel = [[UILabel alloc] init];
-                tipLabel.text = cropperTipText;
-                tipLabel.textColor = [UIColor whiteColor];
-                tipLabel.font = [UIFont systemFontOfSize:26];
-                tipLabel.textAlignment = NSTextAlignmentCenter;
+                
+                NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
+                paragraphStyle.minimumLineHeight = 19;
+                paragraphStyle.maximumLineHeight = 19;
+                paragraphStyle.alignment = NSTextAlignmentCenter;
+                NSAttributedString *attrStr = [[NSAttributedString alloc]
+                    initWithString:cropperTipText
+                    attributes:@{
+                        NSFontAttributeName: [UIFont systemFontOfSize:13],
+                        NSForegroundColorAttributeName: [UIColor whiteColor],
+                        NSParagraphStyleAttributeName: paragraphStyle
+                    }];
+                tipLabel.attributedText = attrStr;
                 tipLabel.numberOfLines = 0;
                 tipLabel.tag = 99001;
                 tipLabel.translatesAutoresizingMaskIntoConstraints = NO;
                 [cropVC.view addSubview:tipLabel];
+                
+                CGRect cropBox = cropVC.cropView.cropBoxFrame;
+                CGFloat tipTop = CGRectGetMaxY(cropBox) + 20;
                 [NSLayoutConstraint activateConstraints:@[
                     [tipLabel.centerXAnchor constraintEqualToAnchor:cropVC.view.centerXAnchor],
-                    [tipLabel.bottomAnchor constraintEqualToAnchor:cropVC.view.safeAreaLayoutGuide.bottomAnchor constant:-60],
+                    [tipLabel.topAnchor constraintEqualToAnchor:cropVC.view.topAnchor constant:tipTop],
                     [tipLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:cropVC.view.leadingAnchor constant:20],
                     [tipLabel.trailingAnchor constraintLessThanOrEqualToAnchor:cropVC.view.trailingAnchor constant:-20]
                 ]];

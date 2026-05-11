@@ -1,6 +1,7 @@
 package com.reactnative.ivpusic.imagepicker;
 
 import android.graphics.Color;
+import android.graphics.RectF;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -9,6 +10,7 @@ import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import com.yalantis.ucrop.UCropActivity;
+import com.yalantis.ucrop.view.UCropView;
 
 public class CropperTipActivity extends UCropActivity {
     public static final String EXTRA_TIP_TEXT = "com.reactnative.ivpusic.imagepicker.EXTRA_TIP_TEXT";
@@ -29,21 +31,33 @@ public class CropperTipActivity extends UCropActivity {
         TextView tipLabel = new TextView(this);
         tipLabel.setText(tipText);
         tipLabel.setTextColor(Color.WHITE);
-        tipLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 26);
+        tipLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        tipLabel.setLineSpacing(0, 0);
+        float lineHeight = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 19, getResources().getDisplayMetrics());
+        tipLabel.setLineHeight((int) lineHeight);
         tipLabel.setGravity(Gravity.CENTER);
+
+        int horizontalPadding = (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 20, getResources().getDisplayMetrics());
+        tipLabel.setPadding(horizontalPadding, 0, horizontalPadding, 0);
 
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT
         );
-        params.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
-        int bottomMargin = (int) TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 80, getResources().getDisplayMetrics());
-        params.bottomMargin = bottomMargin;
-        int horizontalPadding = (int) TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 20, getResources().getDisplayMetrics());
-        tipLabel.setPadding(horizontalPadding, 0, horizontalPadding, 0);
+        params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
 
         rootView.addView(tipLabel, params);
+
+        rootView.post(() -> {
+            UCropView ucropView = findViewById(com.yalantis.ucrop.R.id.ucrop);
+            if (ucropView != null) {
+                RectF cropRect = ucropView.getOverlayView().getCropViewRect();
+                int topMargin = (int) cropRect.bottom + (int) TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_DIP, 20, getResources().getDisplayMetrics());
+                params.topMargin = topMargin;
+                tipLabel.setLayoutParams(params);
+            }
+        });
     }
 }
