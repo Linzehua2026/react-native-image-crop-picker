@@ -100,6 +100,7 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
     private String cropperToolbarTitle = null;
     private String cropperToolbarWidgetColor = null;
     private String cropperTipText = null;
+    private String cropperTipColor = null;
 
     private int width = 0;
     private int height = 0;
@@ -142,6 +143,7 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
         cropperToolbarTitle = options.hasKey("cropperToolbarTitle") ? options.getString("cropperToolbarTitle") : null;
         cropperToolbarWidgetColor = options.hasKey("cropperToolbarWidgetColor") ? options.getString("cropperToolbarWidgetColor") : null;
         cropperTipText = options.hasKey("cropperTipText") ? options.getString("cropperTipText") : null;
+        cropperTipColor = options.hasKey("cropperTipColor") ? options.getString("cropperTipColor") : null;
         cropperCircleOverlay = options.hasKey("cropperCircleOverlay") && options.getBoolean("cropperCircleOverlay");
         freeStyleCropEnabled = options.hasKey("freeStyleCropEnabled") && options.getBoolean("freeStyleCropEnabled");
         showCropGuidelines = !options.hasKey("showCropGuidelines") || options.getBoolean("showCropGuidelines");
@@ -785,6 +787,9 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
             Intent cropIntent = uCrop.getIntent(activity);
             cropIntent.setClass(activity, CropperTipActivity.class);
             cropIntent.putExtra(CropperTipActivity.EXTRA_TIP_TEXT, cropperTipText);
+            if (cropperTipColor != null && !cropperTipColor.isEmpty()) {
+                cropIntent.putExtra(CropperTipActivity.EXTRA_TIP_COLOR, cropperTipColor);
+            }
             activity.startActivityForResult(cropIntent, UCrop.REQUEST_CROP);
         } else {
             uCrop.start(activity);

@@ -14,27 +14,33 @@ import com.yalantis.ucrop.view.UCropView;
 
 public class CropperTipActivity extends UCropActivity {
     public static final String EXTRA_TIP_TEXT = "com.reactnative.ivpusic.imagepicker.EXTRA_TIP_TEXT";
+    public static final String EXTRA_TIP_COLOR = "com.reactnative.ivpusic.imagepicker.EXTRA_TIP_COLOR";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         String tipText = getIntent().getStringExtra(EXTRA_TIP_TEXT);
+        String tipColor = getIntent().getStringExtra(EXTRA_TIP_COLOR);
         if (tipText != null && !tipText.isEmpty()) {
-            addTipLabel(tipText);
+            addTipLabel(tipText, tipColor);
         }
     }
 
-    private void addTipLabel(String tipText) {
+    private void addTipLabel(String tipText, String tipColor) {
         ViewGroup rootView = (ViewGroup) getWindow().getDecorView().findViewById(android.R.id.content);
 
         TextView tipLabel = new TextView(this);
         tipLabel.setText(tipText);
-        tipLabel.setTextColor(Color.WHITE);
-        tipLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        tipLabel.setLineSpacing(0, 0);
-        float lineHeight = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 19, getResources().getDisplayMetrics());
-        tipLabel.setLineHeight((int) lineHeight);
+        int color = Color.WHITE;
+        if (tipColor != null && !tipColor.isEmpty()) {
+            try { color = Color.parseColor(tipColor); } catch (Exception ignored) {}
+        }
+        tipLabel.setTextColor(color);
+        tipLabel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        float fontPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 13, getResources().getDisplayMetrics());
+        float lineHeightPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 19, getResources().getDisplayMetrics());
+        tipLabel.setLineSpacing(lineHeightPx - fontPx, 1);
         tipLabel.setGravity(Gravity.CENTER);
 
         int horizontalPadding = (int) TypedValue.applyDimension(

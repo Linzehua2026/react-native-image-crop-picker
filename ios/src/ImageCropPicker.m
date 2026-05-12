@@ -917,10 +917,16 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
         }
         
         NSString *cropperTipText = [self.options objectForKey:@"cropperTipText"];
+        NSString *cropperTipColor = [self.options objectForKey:@"cropperTipColor"];
         
         [[self getRootVC] presentViewController:cropVC animated:FALSE completion:^{
             if (cropperTipText && cropperTipText.length > 0) {
                 UILabel *tipLabel = [[UILabel alloc] init];
+                
+                UIColor *tipColor = [UIColor whiteColor];
+                if (cropperTipColor && cropperTipColor.length > 0) {
+                    tipColor = [ImageCropPicker colorFromHexString:cropperTipColor];
+                }
                 
                 NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
                 paragraphStyle.minimumLineHeight = 19;
@@ -930,7 +936,7 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
                     initWithString:cropperTipText
                     attributes:@{
                         NSFontAttributeName: [UIFont systemFontOfSize:13],
-                        NSForegroundColorAttributeName: [UIColor whiteColor],
+                        NSForegroundColorAttributeName: tipColor,
                         NSParagraphStyleAttributeName: paragraphStyle
                     }];
                 tipLabel.attributedText = attrStr;
