@@ -5,6 +5,7 @@ import android.graphics.RectF;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -20,7 +21,7 @@ public class CropperTipActivity extends UCropActivity {
     public static final String EXTRA_CIRCLE_OVERLAY = "com.reactnative.ivpusic.imagepicker.EXTRA_CIRCLE_OVERLAY";
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         String tipText = getIntent().getStringExtra(EXTRA_TIP_TEXT);
@@ -68,6 +69,9 @@ public class CropperTipActivity extends UCropActivity {
 
         Runnable updateBounds = () -> {
             RectF cropRect = ucropView.getOverlayView().getCropViewRect();
+            if (cropRect == null || cropRect.width() <= 0 || cropRect.height() <= 0) {
+                return;
+            }
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) layerView.getLayoutParams();
             lp.width = Math.round(cropRect.width());
             lp.height = Math.round(cropRect.height());
@@ -77,8 +81,15 @@ public class CropperTipActivity extends UCropActivity {
         };
 
         ucropView.post(updateBounds);
-        // Some devices/layout paths report an empty rect on first frame.
+        // Some camera flows update crop rect after first layout pass.
         ucropView.postDelayed(updateBounds, 60);
+        ucropView.postDelayed(updateBounds, 180);
+        ucropView.postDelayed(updateBounds, 360);
+        ucropView.postDelayed(updateBounds, 700);
+
+        View overlayView = ucropView.getOverlayView();
+        overlayView.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> updateBounds.run());
+        ucropView.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> updateBounds.run());
     }
 
     private void addTipLabel(String tipText, String tipColor) {
@@ -109,20 +120,37 @@ public class CropperTipActivity extends UCropActivity {
 
         rootView.addView(tipLabel, params);
 
-        rootView.post(() -> {
+        Runnable updateTipPosition = () -> {
             UCropView ucropView = findViewById(com.yalantis.ucrop.R.id.ucrop);
-            if (ucropView != null) {
-                RectF cropRect = ucropView.getOverlayView().getCropViewRect();
-                int[] rootLocation = new int[2];
-                int[] ucropLocation = new int[2];
-                rootView.getLocationOnScreen(rootLocation);
-                ucropView.getLocationOnScreen(ucropLocation);
-                int ucropTopInRoot = ucropLocation[1] - rootLocation[1];
-                int topMargin = (int) cropRect.bottom + (int) TypedValue.applyDimension(
-                        TypedValue.COMPLEX_UNIT_DIP, 20, getResources().getDisplayMetrics()) + ucropTopInRoot;
-                params.topMargin = topMargin;
-                tipLabel.setLayoutParams(params);
+            if (ucropView == null) {
+                return;
             }
-        });
+            RectF cropRect = ucropView.getOverlayView().getCropViewRect();
+            if (cropRect == null || cropRect.width() <= 0 || cropRect.height() <= 0) {
+                return;
+            }
+            int[] rootLocation = new int[2];
+            int[] ucropLocation = new int[2];
+            rootView.getLocationInWindow(rootLocation);
+            ucropView.getLocationInWindow(ucropLocation);
+            int ucropTopInRoot = ucropLocation[1] - rootLocation[1];
+            int topMargin = (int) cropRect.bottom + (int) TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP, 20, getResources().getDisplayMetrics()) + ucropTopInRoot;
+            params.topMargin = topMargin;
+            tipLabel.setLayoutParams(params);
+        };
+
+        rootView.post(updateTipPosition);
+        rootView.postDelayed(updateTipPosition, 120);
+        rootView.postDelayed(updateTipPosition, 280);
+        rootView.postDelayed(updateTipPosition, 520);
+        rootView.postDelayed(updateTipPosition, 800);
+
+        UCropView ucropView = findViewById(com.yalantis.ucrop.R.id.ucrop);
+        if (ucropView != null) {
+            View overlayView = ucropView.getOverlayView();
+            overlayView.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> updateTipPosition.run());
+            ucropView.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> updateTipPosition.run());
+        }
     }
 }
