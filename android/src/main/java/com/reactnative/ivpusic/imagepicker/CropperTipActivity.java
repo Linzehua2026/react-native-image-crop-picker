@@ -113,8 +113,13 @@ public class CropperTipActivity extends UCropActivity {
             UCropView ucropView = findViewById(com.yalantis.ucrop.R.id.ucrop);
             if (ucropView != null) {
                 RectF cropRect = ucropView.getOverlayView().getCropViewRect();
+                int[] rootLocation = new int[2];
+                int[] ucropLocation = new int[2];
+                rootView.getLocationOnScreen(rootLocation);
+                ucropView.getLocationOnScreen(ucropLocation);
+                int ucropTopInRoot = ucropLocation[1] - rootLocation[1];
                 int topMargin = (int) cropRect.bottom + (int) TypedValue.applyDimension(
-                        TypedValue.COMPLEX_UNIT_DIP, 20, getResources().getDisplayMetrics());
+                        TypedValue.COMPLEX_UNIT_DIP, 20, getResources().getDisplayMetrics()) + ucropTopInRoot;
                 params.topMargin = topMargin;
                 tipLabel.setLayoutParams(params);
             }
