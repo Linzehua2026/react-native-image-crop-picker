@@ -38,9 +38,9 @@ public class CropperTipActivity extends UCropActivity {
     }
 
     private void addLayerImage(boolean circleOverlay) {
-        ViewGroup rootView = (ViewGroup) getWindow().getDecorView().findViewById(android.R.id.content);
         ImageView layerView = new ImageView(this);
-        layerView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        layerView.setScaleType(ImageView.ScaleType.FIT_XY);
+        layerView.setAdjustViewBounds(false);
 
         String drawableName = circleOverlay ? "half_body_layer" : "body_layer";
         int drawableId = getResources().getIdentifier(drawableName, "drawable", getPackageName());
@@ -49,24 +49,36 @@ public class CropperTipActivity extends UCropActivity {
         }
 
         layerView.setImageResource(drawableId);
+        UCropView ucropView = findViewById(com.yalantis.ucrop.R.id.ucrop);
+        if (ucropView == null) {
+            return;
+        }
+
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(0, 0);
         params.gravity = Gravity.TOP | Gravity.START;
+        layerView.setLayoutParams(params);
 
-        rootView.addView(layerView, params);
+        // Put guide layer under OverlayView so it is only visible inside crop window.
+        int overlayIndex = ucropView.indexOfChild(ucropView.getOverlayView());
+        if (overlayIndex >= 0) {
+            ucropView.addView(layerView, overlayIndex, params);
+        } else {
+            ucropView.addView(layerView, params);
+        }
 
-        rootView.post(() -> {
-            UCropView ucropView = findViewById(com.yalantis.ucrop.R.id.ucrop);
-            if (ucropView == null) {
-                return;
-            }
-
+        Runnable updateBounds = () -> {
             RectF cropRect = ucropView.getOverlayView().getCropViewRect();
-            params.width = Math.round(cropRect.width());
-            params.height = Math.round(cropRect.height());
-            params.leftMargin = Math.round(cropRect.left);
-            params.topMargin = Math.round(cropRect.top);
-            layerView.setLayoutParams(params);
-        });
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) layerView.getLayoutParams();
+            lp.width = Math.round(cropRect.width());
+            lp.height = Math.round(cropRect.height());
+            lp.leftMargin = Math.round(cropRect.left);
+            lp.topMargin = Math.round(cropRect.top);
+            layerView.setLayoutParams(lp);
+        };
+
+        ucropView.post(updateBounds);
+        // Some devices/layout paths report an empty rect on first frame.
+        ucropView.postDelayed(updateBounds, 60);
     }
 
     private void addTipLabel(String tipText, String tipColor) {
