@@ -85,6 +85,7 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
     private boolean includeExif = false;
     private boolean cropping = false;
     private boolean cropperCircleOverlay = false;
+    private boolean showCropGuideLayer = false;
     private boolean freeStyleCropEnabled = false;
     private boolean showCropGuidelines = true;
     private boolean showCropFrame = true;
@@ -145,6 +146,7 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
         cropperTipText = options.hasKey("cropperTipText") ? options.getString("cropperTipText") : null;
         cropperTipColor = options.hasKey("cropperTipColor") ? options.getString("cropperTipColor") : null;
         cropperCircleOverlay = options.hasKey("cropperCircleOverlay") && options.getBoolean("cropperCircleOverlay");
+        showCropGuideLayer = options.hasKey("showCropGuideLayer") && options.getBoolean("showCropGuideLayer");
         freeStyleCropEnabled = options.hasKey("freeStyleCropEnabled") && options.getBoolean("freeStyleCropEnabled");
         showCropGuidelines = !options.hasKey("showCropGuidelines") || options.getBoolean("showCropGuidelines");
         showCropFrame = !options.hasKey("showCropFrame") || options.getBoolean("showCropFrame");
@@ -790,6 +792,14 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
             if (cropperTipColor != null && !cropperTipColor.isEmpty()) {
                 cropIntent.putExtra(CropperTipActivity.EXTRA_TIP_COLOR, cropperTipColor);
             }
+            cropIntent.putExtra(CropperTipActivity.EXTRA_SHOW_CROP_GUIDE_LAYER, showCropGuideLayer);
+            cropIntent.putExtra(CropperTipActivity.EXTRA_CIRCLE_OVERLAY, cropperCircleOverlay);
+            activity.startActivityForResult(cropIntent, UCrop.REQUEST_CROP);
+        } else if (showCropGuideLayer) {
+            Intent cropIntent = uCrop.getIntent(activity);
+            cropIntent.setClass(activity, CropperTipActivity.class);
+            cropIntent.putExtra(CropperTipActivity.EXTRA_SHOW_CROP_GUIDE_LAYER, true);
+            cropIntent.putExtra(CropperTipActivity.EXTRA_CIRCLE_OVERLAY, cropperCircleOverlay);
             activity.startActivityForResult(cropIntent, UCrop.REQUEST_CROP);
         } else {
             uCrop.start(activity);

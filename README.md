@@ -131,6 +131,7 @@ ImagePicker.clean().then(() => {
 | freeStyleCropEnabled      |        bool (default false)        | Enables user to apply custom rectangle area for cropping |
 | cropperToolbarTitle                     |        string (default `Edit Photo`)     | When cropping image, determines the title of Toolbar. |
 | cropperCircleOverlay                    |           bool (default false)           | Enable or disable circular cropping mask. |
+| showCropGuideLayer                      |           bool (default false)           | Show a guide layer image inside crop box. Uses `half_body_layer` when `cropperCircleOverlay=true`, otherwise uses `body_layer`. |
 | disableCropperColorSetters (android only)|           bool (default false)           | When cropping image, disables the color setters for cropping library. |
 | minFiles (ios only)                     |            number (default 1)            | Min number of files to select when using `multiple` option |
 | maxFiles (ios only)                     |            number (default 5)            | Max number of files to select when using `multiple` option |
@@ -155,6 +156,8 @@ ImagePicker.clean().then(() => {
 | cropperCancelText (ios only)            |           string (default Cancel)        | Cancel button text |
 | cropperCancelColor (ios only)           |           string (default tint `iOS` color )        | HEX format color for the Cancel button. Default value is the default tint iOS color [controlled by TOCropViewController](https://github.com/TimOliver/TOCropViewController/blob/a942414508012b13102f776eb65dac655f31cabb/Objective-C/TOCropViewController/Views/TOCropToolbar.m#L433) |
 | cropperRotateButtonsHidden (ios only)   |           bool (default false)           | Enable or disable cropper rotate buttons |
+
+> `showCropGuideLayer` uses built-in `body_layer` and `half_body_layer` assets from this library.
 
 
 #### Smart Album Types (ios)

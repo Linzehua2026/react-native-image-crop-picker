@@ -249,6 +249,15 @@ declare module "react-native-image-crop-picker" {
         cropperCircleOverlay?: boolean;
 
         /**
+         * Show guide layer image inside crop box.
+         * Uses `half_body_layer` when `cropperCircleOverlay` is true,
+         * otherwise uses `body_layer`.
+         *
+         * @default false
+         */
+        showCropGuideLayer?: boolean;
+
+        /**
          * Cancel button text.
          *
          * @default 'Cancel'

@@ -72,7 +72,8 @@ RCT_EXPORT_MODULE();
             @"sortOrder": @"none",
             @"cropperCancelText": @"Cancel",
             @"cropperChooseText": @"Choose",
-            @"cropperRotateButtonsHidden": @NO
+            @"cropperRotateButtonsHidden": @NO,
+            @"showCropGuideLayer": @NO
         };
         self.compression = [[Compression alloc] init];
     }
@@ -875,6 +876,28 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
     return [UIColor colorWithRed:((rgbValue & 0xFF0000) >> 16)/255.0 green:((rgbValue & 0xFF00) >> 8)/255.0 blue:(rgbValue & 0xFF)/255.0 alpha:1.0];
 }
 
+- (NSBundle *)resourceBundleForGuideLayer {
+    NSBundle *classBundle = [NSBundle bundleForClass:[ImageCropPicker class]];
+    NSURL *bundleURL = [classBundle URLForResource:@"RNImageCropPickerAssets" withExtension:@"bundle"];
+    if (bundleURL != nil) {
+        NSBundle *resourceBundle = [NSBundle bundleWithURL:bundleURL];
+        if (resourceBundle != nil) {
+            return resourceBundle;
+        }
+    }
+    return classBundle;
+}
+
+- (UIImage *)guideLayerImageWithCircleOverlay:(BOOL)circleOverlay {
+    NSString *imageName = circleOverlay ? @"half_body_layer" : @"body_layer";
+    NSBundle *bundle = [self resourceBundleForGuideLayer];
+    UIImage *image = [UIImage imageNamed:imageName inBundle:bundle compatibleWithTraitCollection:nil];
+    if (image != nil) {
+        return image;
+    }
+    return [UIImage imageNamed:imageName];
+}
+
 #pragma mark - TOCCropViewController Implementation
 - (void)cropImage:(UIImage *)image {
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -920,6 +943,19 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
         NSString *cropperTipColor = [self.options objectForKey:@"cropperTipColor"];
         
         [[self getRootVC] presentViewController:cropVC animated:FALSE completion:^{
+            if ([[self.options objectForKey:@"showCropGuideLayer"] boolValue]) {
+                UIImage *guideLayerImage = [self guideLayerImageWithCircleOverlay:[[[self options] objectForKey:@"cropperCircleOverlay"] boolValue]];
+                if (guideLayerImage != nil) {
+                    UIImageView *guideLayerView = [[UIImageView alloc] initWithImage:guideLayerImage];
+                    guideLayerView.contentMode = UIViewContentModeScaleAspectFit;
+                    guideLayerView.userInteractionEnabled = NO;
+                    guideLayerView.clipsToBounds = YES;
+                    guideLayerView.tag = 99000;
+                    guideLayerView.frame = cropVC.cropView.cropBoxFrame;
+                    [cropVC.view addSubview:guideLayerView];
+                }
+            }
+
             if (cropperTipText && cropperTipText.length > 0) {
                 UILabel *tipLabel = [[UILabel alloc] init];
                 

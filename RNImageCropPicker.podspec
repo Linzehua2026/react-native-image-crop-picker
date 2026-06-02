@@ -16,6 +16,7 @@ Pod::Spec.new do |s|
   s.dependency 'TOCropViewController', '~> 2.7.4'
   s.resource_bundles = {
     'RNImageCropPickerPrivacyInfo' => ['ios/PrivacyInfo.xcprivacy'],
+    'RNImageCropPickerAssets' => ['ios/src/*.{png}'],
   }
 
   s.subspec 'QBImagePickerController' do |qb|

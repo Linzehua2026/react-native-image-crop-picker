@@ -7,6 +7,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.yalantis.ucrop.UCropActivity;
@@ -15,6 +16,8 @@ import com.yalantis.ucrop.view.UCropView;
 public class CropperTipActivity extends UCropActivity {
     public static final String EXTRA_TIP_TEXT = "com.reactnative.ivpusic.imagepicker.EXTRA_TIP_TEXT";
     public static final String EXTRA_TIP_COLOR = "com.reactnative.ivpusic.imagepicker.EXTRA_TIP_COLOR";
+    public static final String EXTRA_SHOW_CROP_GUIDE_LAYER = "com.reactnative.ivpusic.imagepicker.EXTRA_SHOW_CROP_GUIDE_LAYER";
+    public static final String EXTRA_CIRCLE_OVERLAY = "com.reactnative.ivpusic.imagepicker.EXTRA_CIRCLE_OVERLAY";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,9 +25,48 @@ public class CropperTipActivity extends UCropActivity {
 
         String tipText = getIntent().getStringExtra(EXTRA_TIP_TEXT);
         String tipColor = getIntent().getStringExtra(EXTRA_TIP_COLOR);
+        boolean showLayer = getIntent().getBooleanExtra(EXTRA_SHOW_CROP_GUIDE_LAYER, false);
+        boolean circleOverlay = getIntent().getBooleanExtra(EXTRA_CIRCLE_OVERLAY, false);
+
+        if (showLayer) {
+            addLayerImage(circleOverlay);
+        }
+
         if (tipText != null && !tipText.isEmpty()) {
             addTipLabel(tipText, tipColor);
         }
+    }
+
+    private void addLayerImage(boolean circleOverlay) {
+        ViewGroup rootView = (ViewGroup) getWindow().getDecorView().findViewById(android.R.id.content);
+        ImageView layerView = new ImageView(this);
+        layerView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+        String drawableName = circleOverlay ? "half_body_layer" : "body_layer";
+        int drawableId = getResources().getIdentifier(drawableName, "drawable", getPackageName());
+        if (drawableId == 0) {
+            return;
+        }
+
+        layerView.setImageResource(drawableId);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(0, 0);
+        params.gravity = Gravity.TOP | Gravity.START;
+
+        rootView.addView(layerView, params);
+
+        rootView.post(() -> {
+            UCropView ucropView = findViewById(com.yalantis.ucrop.R.id.ucrop);
+            if (ucropView == null) {
+                return;
+            }
+
+            RectF cropRect = ucropView.getOverlayView().getCropViewRect();
+            params.width = Math.round(cropRect.width());
+            params.height = Math.round(cropRect.height());
+            params.leftMargin = Math.round(cropRect.left);
+            params.topMargin = Math.round(cropRect.top);
+            layerView.setLayoutParams(params);
+        });
     }
 
     private void addTipLabel(String tipText, String tipColor) {
