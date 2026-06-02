@@ -52,6 +52,7 @@ RCT_EXPORT_MODULE();
             @"multiple": @NO,
             @"cropping": @NO,
             @"cropperCircleOverlay": @NO,
+            @"showCropGuidelines": @YES,
             @"writeTempFile": @YES,
             @"includeBase64": @NO,
             @"includeExif": @NO,
@@ -898,6 +899,26 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
     return [UIImage imageNamed:imageName];
 }
 
+- (void)applyCropGuidelinesVisibility:(TOCropViewController *)cropVC {
+    BOOL showCropGuidelines = ![[self.options objectForKey:@"showCropGuidelines"] isEqual:@NO];
+    if (showCropGuidelines) {
+        return;
+    }
+
+    // Permanently disable grid lines so they don't appear during drag interactions.
+    @try {
+        id cropView = cropVC.cropView;
+        id gridOverlayView = [cropView valueForKey:@"gridOverlayView"];
+        if (gridOverlayView != nil) {
+            [gridOverlayView setValue:@(NO) forKey:@"displayHorizontalGridLines"];
+            [gridOverlayView setValue:@(NO) forKey:@"displayVerticalGridLines"];
+            [gridOverlayView setValue:@(YES) forKey:@"gridHidden"];
+        }
+    } @catch (__unused NSException *exception) {
+        // Ignore if the current TOCropViewController build does not expose grid internals.
+    }
+}
+
 #pragma mark - TOCCropViewController Implementation
 - (void)cropImage:(UIImage *)image {
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -933,6 +954,7 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
         cropVC.doneButtonTitle = [self.options objectForKey:@"cropperChooseText"];
         cropVC.cancelButtonTitle = [self.options objectForKey:@"cropperCancelText"];
         cropVC.rotateButtonsHidden = [[self.options objectForKey:@"cropperRotateButtonsHidden"] boolValue];
+        [self applyCropGuidelinesVisibility:cropVC];
         
         cropVC.modalPresentationStyle = UIModalPresentationFullScreen;
         if (@available(iOS 15.0, *)) {

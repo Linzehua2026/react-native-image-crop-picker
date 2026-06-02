@@ -147,7 +147,7 @@ ImagePicker.clean().then(() => {
 | showsSelectedCount (ios only)           |           bool (default true)            | Whether to show the number of selected assets |
 | sortOrder (ios only)           |           string (default 'none', supported values: 'asc', 'desc', 'none')            | Applies a sort order on the creation date on how media is displayed within the albums/detail photo views when opening the image picker |
 | forceJpg (ios only)           |           bool (default false)            | Whether to convert photos to JPG. This will also convert any Live Photo into its JPG representation |
-| showCropGuidelines (android only)       |           bool (default true)            | Whether to show the 3x3 grid on top of the image during cropping |
+| showCropGuidelines                       |           bool (default true)            | Whether to show the 3x3 grid on top of the image during cropping |
 | showCropFrame (android only)       |           bool (default true)            | Whether to show crop frame during cropping |
 | hideBottomControls (android only)       |           bool (default false)           | Whether to display bottom controls       |
 | enableRotationGesture (android only)    |           bool (default false)           | Whether to enable rotating the image by hand gesture |

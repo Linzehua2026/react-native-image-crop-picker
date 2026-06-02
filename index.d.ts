@@ -313,7 +313,6 @@ declare module "react-native-image-crop-picker" {
         /**
          * Whether to show the 3x3 grid on top of the image during cropping.
          *
-         * @platform Android only
          * @default true
          */
         showCropGuidelines?: boolean;
