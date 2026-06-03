@@ -1,0 +1,2 @@
+-keep class com.reactnative.ivpusic.imagepicker.CropperTipActivity { *; }
+-keep class com.reactnative.ivpusic.imagepicker.PickerModule { *; }

@@ -785,20 +785,19 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
             uCrop.withAspectRatio(width, height);
         }
 
-        if (cropperTipText != null && !cropperTipText.isEmpty()) {
+        boolean useCropperTipActivity = showCropGuideLayer
+                || (cropperTipText != null && !cropperTipText.isEmpty());
+
+        if (useCropperTipActivity) {
             Intent cropIntent = uCrop.getIntent(activity);
             cropIntent.setClass(activity, CropperTipActivity.class);
-            cropIntent.putExtra(CropperTipActivity.EXTRA_TIP_TEXT, cropperTipText);
+            if (cropperTipText != null && !cropperTipText.isEmpty()) {
+                cropIntent.putExtra(CropperTipActivity.EXTRA_TIP_TEXT, cropperTipText);
+            }
             if (cropperTipColor != null && !cropperTipColor.isEmpty()) {
                 cropIntent.putExtra(CropperTipActivity.EXTRA_TIP_COLOR, cropperTipColor);
             }
             cropIntent.putExtra(CropperTipActivity.EXTRA_SHOW_CROP_GUIDE_LAYER, showCropGuideLayer);
-            cropIntent.putExtra(CropperTipActivity.EXTRA_CIRCLE_OVERLAY, cropperCircleOverlay);
-            activity.startActivityForResult(cropIntent, UCrop.REQUEST_CROP);
-        } else if (showCropGuideLayer) {
-            Intent cropIntent = uCrop.getIntent(activity);
-            cropIntent.setClass(activity, CropperTipActivity.class);
-            cropIntent.putExtra(CropperTipActivity.EXTRA_SHOW_CROP_GUIDE_LAYER, true);
             cropIntent.putExtra(CropperTipActivity.EXTRA_CIRCLE_OVERLAY, cropperCircleOverlay);
             activity.startActivityForResult(cropIntent, UCrop.REQUEST_CROP);
         } else {

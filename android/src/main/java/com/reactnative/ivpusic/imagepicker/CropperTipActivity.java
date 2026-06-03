@@ -15,6 +15,13 @@ import com.yalantis.ucrop.UCropActivity;
 import com.yalantis.ucrop.view.UCropView;
 
 public class CropperTipActivity extends UCropActivity {
+    // Static refs so release shrinkResources/R8 keep guide drawables (getIdentifier is invisible to the shrinker).
+    @SuppressWarnings("unused")
+    private static final int[] KEEP_GUIDE_DRAWABLES = {
+            R.drawable.body_layer,
+            R.drawable.half_body_layer,
+    };
+
     public static final String EXTRA_TIP_TEXT = "com.reactnative.ivpusic.imagepicker.EXTRA_TIP_TEXT";
     public static final String EXTRA_TIP_COLOR = "com.reactnative.ivpusic.imagepicker.EXTRA_TIP_COLOR";
     public static final String EXTRA_SHOW_CROP_GUIDE_LAYER = "com.reactnative.ivpusic.imagepicker.EXTRA_SHOW_CROP_GUIDE_LAYER";
@@ -43,12 +50,7 @@ public class CropperTipActivity extends UCropActivity {
         layerView.setScaleType(ImageView.ScaleType.FIT_XY);
         layerView.setAdjustViewBounds(false);
 
-        String drawableName = circleOverlay ? "half_body_layer" : "body_layer";
-        int drawableId = getResources().getIdentifier(drawableName, "drawable", getPackageName());
-        if (drawableId == 0) {
-            return;
-        }
-
+        int drawableId = circleOverlay ? R.drawable.half_body_layer : R.drawable.body_layer;
         layerView.setImageResource(drawableId);
         UCropView ucropView = findViewById(com.yalantis.ucrop.R.id.ucrop);
         if (ucropView == null) {
