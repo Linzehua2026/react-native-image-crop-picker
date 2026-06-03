@@ -16,8 +16,20 @@ Pod::Spec.new do |s|
   s.dependency 'TOCropViewController', '~> 2.7.4'
   s.resource_bundles = {
     'RNImageCropPickerPrivacyInfo' => ['ios/PrivacyInfo.xcprivacy'],
-    'RNImageCropPickerAssets' => ['ios/src/*.{png}'],
+    'RNImageCropPickerAssets' => [
+      'ios/src/body_layer@2x.png',
+      'ios/src/body_layer@3x.png',
+      'ios/src/half_body_layer@2x.png',
+      'ios/src/half_body_layer@3x.png',
+    ],
   }
+  # Also copy guide images into the host app bundle (static RN linking often skips pod resource bundles).
+  s.resources = [
+    'ios/src/body_layer@2x.png',
+    'ios/src/body_layer@3x.png',
+    'ios/src/half_body_layer@2x.png',
+    'ios/src/half_body_layer@3x.png',
+  ]
 
   s.subspec 'QBImagePickerController' do |qb|
     qb.name             = "QBImagePickerController"

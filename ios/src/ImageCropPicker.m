@@ -877,26 +877,112 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
     return [UIColor colorWithRed:((rgbValue & 0xFF0000) >> 16)/255.0 green:((rgbValue & 0xFF00) >> 8)/255.0 blue:(rgbValue & 0xFF)/255.0 alpha:1.0];
 }
 
-- (NSBundle *)resourceBundleForGuideLayer {
-    NSBundle *classBundle = [NSBundle bundleForClass:[ImageCropPicker class]];
-    NSURL *bundleURL = [classBundle URLForResource:@"RNImageCropPickerAssets" withExtension:@"bundle"];
-    if (bundleURL != nil) {
-        NSBundle *resourceBundle = [NSBundle bundleWithURL:bundleURL];
-        if (resourceBundle != nil) {
-            return resourceBundle;
+- (NSBundle *)guideLayerAssetsBundle {
+    static NSBundle *cachedBundle = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSArray<NSBundle *> *owners = @[
+            [NSBundle bundleForClass:[ImageCropPicker class]],
+            [NSBundle mainBundle],
+        ];
+
+        for (NSBundle *owner in owners) {
+            NSString *bundlePath = [owner pathForResource:@"RNImageCropPickerAssets" ofType:@"bundle"];
+            if (bundlePath.length > 0) {
+                NSBundle *resourceBundle = [NSBundle bundleWithPath:bundlePath];
+                if (resourceBundle != nil) {
+                    cachedBundle = resourceBundle;
+                    return;
+                }
+            }
+
+            NSURL *frameworkBundleURL = [[owner resourceURL] URLByAppendingPathComponent:@"RNImageCropPickerAssets.bundle"];
+            if (frameworkBundleURL != nil && [[NSFileManager defaultManager] fileExistsAtPath:frameworkBundleURL.path]) {
+                NSBundle *resourceBundle = [NSBundle bundleWithURL:frameworkBundleURL];
+                if (resourceBundle != nil) {
+                    cachedBundle = resourceBundle;
+                    return;
+                }
+            }
         }
-    }
-    return classBundle;
+
+        for (NSBundle *bundle in [NSBundle allBundles]) {
+            if ([bundle.bundlePath.lastPathComponent isEqualToString:@"RNImageCropPickerAssets.bundle"]) {
+                cachedBundle = bundle;
+                return;
+            }
+        }
+
+        cachedBundle = [NSBundle mainBundle];
+    });
+    return cachedBundle;
 }
 
-- (UIImage *)guideLayerImageWithCircleOverlay:(BOOL)circleOverlay {
-    NSString *imageName = circleOverlay ? @"half_body_layer" : @"body_layer";
-    NSBundle *bundle = [self resourceBundleForGuideLayer];
+- (UIImage *)guideLayerImageFromBundle:(NSBundle *)bundle imageName:(NSString *)imageName {
     UIImage *image = [UIImage imageNamed:imageName inBundle:bundle compatibleWithTraitCollection:nil];
     if (image != nil) {
         return image;
     }
+
+    NSArray<NSString *> *scaleSuffixes = @[@"@3x", @"@2x", @""];
+    for (NSString *suffix in scaleSuffixes) {
+        NSString *resourceName = [imageName stringByAppendingString:suffix];
+        NSString *path = [bundle pathForResource:resourceName ofType:@"png"];
+        if (path.length > 0) {
+            UIImage *fileImage = [UIImage imageWithContentsOfFile:path];
+            if (fileImage != nil) {
+                return fileImage;
+            }
+        }
+    }
+
+    return nil;
+}
+
+- (UIImage *)guideLayerImageWithCircleOverlay:(BOOL)circleOverlay {
+    NSString *imageName = circleOverlay ? @"half_body_layer" : @"body_layer";
+    NSArray<NSBundle *> *bundles = @[
+        [self guideLayerAssetsBundle],
+        [NSBundle mainBundle],
+        [NSBundle bundleForClass:[ImageCropPicker class]],
+    ];
+
+    for (NSBundle *bundle in bundles) {
+        UIImage *image = [self guideLayerImageFromBundle:bundle imageName:imageName];
+        if (image != nil) {
+            return image;
+        }
+    }
+
     return [UIImage imageNamed:imageName];
+}
+
+- (void)attachGuideLayerToCropViewController:(TOCropViewController *)cropVC {
+    UIImage *guideLayerImage = [self guideLayerImageWithCircleOverlay:[[[self options] objectForKey:@"cropperCircleOverlay"] boolValue]];
+    if (guideLayerImage == nil) {
+        return;
+    }
+
+    UIImageView *guideLayerView = [[UIImageView alloc] initWithImage:guideLayerImage];
+    guideLayerView.contentMode = UIViewContentModeScaleAspectFit;
+    guideLayerView.userInteractionEnabled = NO;
+    guideLayerView.clipsToBounds = YES;
+    guideLayerView.tag = 99000;
+    [cropVC.cropView addSubview:guideLayerView];
+
+    void (^updateGuideFrame)(void) = ^{
+        CGRect cropBox = cropVC.cropView.cropBoxFrame;
+        if (CGRectIsEmpty(cropBox) || CGRectIsNull(cropBox)) {
+            return;
+        }
+        guideLayerView.frame = cropBox;
+        [cropVC.cropView bringSubviewToFront:guideLayerView];
+    };
+
+    updateGuideFrame();
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.06 * NSEC_PER_SEC)), dispatch_get_main_queue(), updateGuideFrame);
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.18 * NSEC_PER_SEC)), dispatch_get_main_queue(), updateGuideFrame);
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.36 * NSEC_PER_SEC)), dispatch_get_main_queue(), updateGuideFrame);
 }
 
 - (void)applyCropGuidelinesVisibility:(TOCropViewController *)cropVC {
@@ -966,16 +1052,7 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
         
         [[self getRootVC] presentViewController:cropVC animated:FALSE completion:^{
             if ([[self.options objectForKey:@"showCropGuideLayer"] boolValue]) {
-                UIImage *guideLayerImage = [self guideLayerImageWithCircleOverlay:[[[self options] objectForKey:@"cropperCircleOverlay"] boolValue]];
-                if (guideLayerImage != nil) {
-                    UIImageView *guideLayerView = [[UIImageView alloc] initWithImage:guideLayerImage];
-                    guideLayerView.contentMode = UIViewContentModeScaleAspectFit;
-                    guideLayerView.userInteractionEnabled = NO;
-                    guideLayerView.clipsToBounds = YES;
-                    guideLayerView.tag = 99000;
-                    guideLayerView.frame = cropVC.cropView.cropBoxFrame;
-                    [cropVC.view addSubview:guideLayerView];
-                }
+                [self attachGuideLayerToCropViewController:cropVC];
             }
 
             if (cropperTipText && cropperTipText.length > 0) {
