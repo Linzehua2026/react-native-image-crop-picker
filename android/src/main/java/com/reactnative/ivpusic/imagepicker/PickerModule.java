@@ -783,6 +783,9 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
 
         if (width > 0 && height > 0) {
             uCrop.withAspectRatio(width, height);
+        } else if (cropperCircleOverlay) {
+            // 圆形裁剪必须为 1:1，否则 uCrop 会用源图比例把圆形遮罩拉伸成椭圆（图片看起来被变形）
+            uCrop.withAspectRatio(1, 1);
         }
 
         boolean useCropperTipActivity = showCropGuideLayer
