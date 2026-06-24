@@ -6,8 +6,55 @@
 //
 
 #import <MobileCoreServices/MobileCoreServices.h>
+#import <objc/runtime.h>
 
 #import "ImageCropPicker.h"
+
+static const void *kRNCPGuideDisplayLinkKey = &kRNCPGuideDisplayLinkKey;
+
+// 引导图在裁剪框内的目标 frame：高度与裁剪框对齐（顶/底贴齐），宽度按图片比例缩放并水平居中
+static CGRect RNCPGuideFrameInCropBox(CGRect cropBox, UIImage *image) {
+    CGSize imageSize = image.size;
+    if (imageSize.width <= 0.f || imageSize.height <= 0.f) {
+        return cropBox;
+    }
+    CGFloat scale = cropBox.size.height / imageSize.height;
+    CGFloat scaledWidth = imageSize.width * scale;
+    CGFloat x = cropBox.origin.x + (cropBox.size.width - scaledWidth) * 0.5f;
+    return CGRectMake(x, cropBox.origin.y, scaledWidth, cropBox.size.height);
+}
+
+// 引导图跟随裁剪框的轻量驱动对象（CADisplayLink target）
+@interface RNCPGuideLink : NSObject
+@property (nonatomic, weak) TOCropViewController *cropVC;
+@property (nonatomic, weak) UIImageView *guideView;
+@property (nonatomic, strong) UIImage *guideImage;
+@property (nonatomic, weak) CADisplayLink *displayLink;
+- (void)refresh;
+- (void)invalidate;
+@end
+
+@implementation RNCPGuideLink
+- (void)refresh {
+    TOCropViewController *cropVC = self.cropVC;
+    UIImageView *guideView = self.guideView;
+    UIImage *guideImage = self.guideImage;
+    if (cropVC == nil || guideView == nil || guideImage == nil) {
+        return;
+    }
+    CGRect cropBox = cropVC.cropView.cropBoxFrame;
+    if (CGRectIsEmpty(cropBox) || CGRectIsNull(cropBox)) {
+        return;
+    }
+    guideView.frame = RNCPGuideFrameInCropBox(cropBox, guideImage);
+    [cropVC.cropView bringSubviewToFront:guideView];
+}
+- (void)invalidate {
+    [self.displayLink invalidate];
+    self.displayLink = nil;
+    [self.guideView removeFromSuperview];
+}
+@end
 
 #define ERROR_PICKER_CANNOT_RUN_CAMERA_ON_SIMULATOR_KEY @"E_PICKER_CANNOT_RUN_CAMERA_ON_SIMULATOR"
 #define ERROR_PICKER_CANNOT_RUN_CAMERA_ON_SIMULATOR_MSG @"Cannot run camera on simulator"
@@ -964,25 +1011,30 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
     }
 
     UIImageView *guideLayerView = [[UIImageView alloc] initWithImage:guideLayerImage];
-    guideLayerView.contentMode = UIViewContentModeScaleAspectFit;
+    // 已按比例计算 frame，用 ScaleToFill 避免二次 AspectFit 留白
+    guideLayerView.contentMode = UIViewContentModeScaleToFill;
     guideLayerView.userInteractionEnabled = NO;
-    guideLayerView.clipsToBounds = YES;
     guideLayerView.tag = 99000;
     [cropVC.cropView addSubview:guideLayerView];
 
-    void (^updateGuideFrame)(void) = ^{
-        CGRect cropBox = cropVC.cropView.cropBoxFrame;
-        if (CGRectIsEmpty(cropBox) || CGRectIsNull(cropBox)) {
-            return;
-        }
-        guideLayerView.frame = cropBox;
-        [cropVC.cropView bringSubviewToFront:guideLayerView];
-    };
+    // 用 CADisplayLink 持续跟随裁剪框：拖动改变大小时引导图等比缩放、顶/底始终贴齐
+    RNCPGuideLink *link = [[RNCPGuideLink alloc] init];
+    link.cropVC = cropVC;
+    link.guideView = guideLayerView;
+    link.guideImage = guideLayerImage;
+    [link refresh];
 
-    updateGuideFrame();
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.06 * NSEC_PER_SEC)), dispatch_get_main_queue(), updateGuideFrame);
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.18 * NSEC_PER_SEC)), dispatch_get_main_queue(), updateGuideFrame);
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.36 * NSEC_PER_SEC)), dispatch_get_main_queue(), updateGuideFrame);
+    CADisplayLink *displayLink = [CADisplayLink displayLinkWithTarget:link selector:@selector(refresh)];
+    [displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+    link.displayLink = displayLink;
+
+    objc_setAssociatedObject(cropVC, kRNCPGuideDisplayLinkKey, link, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (void)detachGuideLayerFromCropViewController:(TOCropViewController *)cropVC {
+    RNCPGuideLink *link = objc_getAssociatedObject(cropVC, kRNCPGuideDisplayLinkKey);
+    [link invalidate];
+    objc_setAssociatedObject(cropVC, kRNCPGuideDisplayLinkKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 - (void)applyCropGuidelinesVisibility:(TOCropViewController *)cropVC {
@@ -1079,25 +1131,39 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
                 tipLabel.tag = 99001;
                 tipLabel.translatesAutoresizingMaskIntoConstraints = NO;
                 [cropVC.view addSubview:tipLabel];
-                
-                CGRect cropBox = cropVC.cropView.cropBoxFrame;
-                CGFloat tipTop = CGRectGetMaxY(cropBox) + 20;
+
+                // 提示固定在底部操作栏（高 44 + 安全区）上方，不随裁剪框移动
+                CGFloat toolbarHeight = 44.0f;
+                CGFloat tipBottomGap = 16.0f;   // 提示与操作栏之间的间距
+                CGFloat tipTopGap = 0.0f;      // 裁剪框与提示之间的间距
                 [NSLayoutConstraint activateConstraints:@[
                     [tipLabel.centerXAnchor constraintEqualToAnchor:cropVC.view.centerXAnchor],
-                    [tipLabel.topAnchor constraintEqualToAnchor:cropVC.view.topAnchor constant:tipTop],
+                    [tipLabel.bottomAnchor constraintEqualToAnchor:cropVC.view.safeAreaLayoutGuide.bottomAnchor constant:-(toolbarHeight + tipBottomGap)],
                     [tipLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:cropVC.view.leadingAnchor constant:20],
                     [tipLabel.trailingAnchor constraintLessThanOrEqualToAnchor:cropVC.view.trailingAnchor constant:-20]
                 ]];
+
+                // 预留底部空间，使裁剪框不会覆盖到提示文字
+                [cropVC.view setNeedsLayout];
+                [cropVC.view layoutIfNeeded];
+                CGFloat tipHeight = CGRectGetHeight(tipLabel.frame);
+                CGFloat reservedBottom = tipTopGap + tipHeight + tipBottomGap;
+                UIEdgeInsets regionInsets = cropVC.cropView.cropRegionInsets;
+                regionInsets.bottom += reservedBottom;
+                cropVC.cropView.cropRegionInsets = regionInsets;
+                [cropVC.cropView resetLayoutToDefaultAnimated:NO];
             }
         }];
     });
 }
 #pragma mark - TOCropViewController Delegate
 - (void)cropViewController:(TOCropViewController *)cropViewController didCropToImage:(UIImage *)image withRect:(CGRect)cropRect angle:(NSInteger)angle {
+    [self detachGuideLayerFromCropViewController:cropViewController];
     [self imageCropViewController:cropViewController didCropImage:image usingCropRect:cropRect];
 }
 
 - (void)cropViewController:(TOCropViewController *)cropViewController didFinishCancelled:(BOOL)cancelled {
+    [self detachGuideLayerFromCropViewController:cropViewController];
     [self dismissCropper:cropViewController selectionDone:NO completion:[self waitAnimationEnd:^{
         if (self.currentSelectionMode == CROPPING) {
             self.reject(ERROR_PICKER_CANCEL_KEY, ERROR_PICKER_CANCEL_MSG, nil);
