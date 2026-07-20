@@ -420,14 +420,23 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
     self.currentSelectionMode = CROPPING;
     
     NSString *path = [options objectForKey:@"path"];
-    
-    [[self.bridge moduleForName:@"ImageLoader" lazilyLoadIfNecessary:YES] loadImageWithURLRequest:[RCTConvert NSURLRequest:path] callback:^(NSError *error, UIImage *image) {
-        if (error) {
-            self.reject(ERROR_CROPPER_IMAGE_NOT_FOUND_KEY, ERROR_CROPPER_IMAGE_NOT_FOUND_MSG, nil);
-        } else {
-            [self cropImage:[image fixOrientation]];
+    // 直接读文件，避免 RN ImageLoader 对大图做缩略解码导致裁剪坐标系小于原图像素
+    NSString *filePath = path;
+    if ([filePath hasPrefix:@"file://"]) {
+        filePath = [[NSURL URLWithString:filePath] path];
+    }
+    UIImage *image = [UIImage imageWithContentsOfFile:filePath];
+    if (image == nil) {
+        NSData *data = [NSData dataWithContentsOfFile:filePath];
+        if (data != nil) {
+            image = [UIImage imageWithData:data];
         }
-    }];
+    }
+    if (image == nil) {
+        self.reject(ERROR_CROPPER_IMAGE_NOT_FOUND_KEY, ERROR_CROPPER_IMAGE_NOT_FOUND_MSG, nil);
+        return;
+    }
+    [self cropImage:[image fixOrientation]];
 }
 
 - (void)showActivityIndicator:(void (^)(UIActivityIndicatorView*, UIView*))handler {
